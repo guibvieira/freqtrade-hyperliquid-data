@@ -1,0 +1,54 @@
+name: Download Hyperliquid Data
+
+on:
+  schedule:
+    - cron: '0 16 * * *'  # Daily at 16:00 UTC
+  workflow_dispatch:       # Manual trigger
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download futures data
+        run: |
+          docker run --rm \
+            --mount type=bind,source=${{ github.workspace }}/user_data,target=/freqtrade/user_data/ \
+            freqtradeorg/freqtrade:stable \
+            download-data \
+            --exchange hyperliquid \
+            --trading-mode futures \
+            --pairs ".*" \
+            --timeframes 1m 3m 5m 15m 30m 1h 2h 4h 8h 12h 1d 3d 1w 1M \
+            --new-pairs-days 18 \
+            --config /freqtrade/user_data/config.json 2>&1 | tee download_log.txt
+
+      - name: Generate data report
+        run: |
+          echo "# Data Report - $(date -u +%Y-%m-%d)" > data_report.txt
+          echo "" >> data_report.txt
+          echo "## File counts by timeframe" >> data_report.txt
+          for tf in 1m 3m 5m 15m 30m 1h 2h 4h 8h 12h 1d 3d 1w 1Mo funding_rate mark; do
+            count=$(find user_data/data -name "*-${tf}-*" -o -name "*-${tf}.*" 2>/dev/null | wc -l | tr -d ' ')
+            size=$(du -sh user_data/data/hyperliquid/futures/*-${tf}-* user_data/data/hyperliquid/futures/*-${tf}.* 2>/dev/null | tail -1 | cut -f1 || echo "0")
+            echo "- ${tf}: ${count} files" >> data_report.txt
+          done
+          echo "" >> data_report.txt
+          echo "## Total size" >> data_report.txt
+          du -sh user_data/data/ >> data_report.txt
+          echo "" >> data_report.txt
+          echo "## Total files" >> data_report.txt
+          find user_data/data -name "*.feather" | wc -l | tr -d ' ' >> data_report.txt
+          cat data_report.txt
+
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add user_data/data/ data_report.txt
+          git diff --cached --quiet || git commit -m "Data update $(date -u +%Y-%m-%d)"
+          git push

@@ -1,0 +1,36 @@
+name: Squash History
+
+on:
+  schedule:
+    - cron: '0 12 * * 0'  # Weekly on Sundays at 12:00 UTC
+  workflow_dispatch:       # Manual trigger
+
+jobs:
+  squash:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for squash
+
+      - name: Squash to single commit (chunked push)
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          git checkout --orphan temp_branch
+
+          # First chunk: add everything except 1m data (under 2 GiB)
+          find user_data/data -type f -not -name '*-1m-*' | xargs git add
+          git add -A .github/ user_data/config.json README.md .gitattributes data_report.txt 2>/dev/null || true
+          git commit -m "Squashed: current data state $(date -u +%Y-%m-%d)"
+          git branch -M main
+          git push --force origin main
+
+          # Second chunk: add 1m data (delta ~1.2 GiB)
+          git add user_data/data/
+          git commit --amend --no-edit
+          git push --force origin main
