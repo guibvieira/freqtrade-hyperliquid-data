@@ -5,6 +5,9 @@ on:
     - cron: '0 12 * * 0'  # Weekly on Sundays at 12:00 UTC
   workflow_dispatch:       # Manual trigger
 
+permissions:
+  contents: write
+
 jobs:
   squash:
     runs-on: ubuntu-latest
