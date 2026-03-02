@@ -1,0 +1,25 @@
+# Data Report - 2026-03-02
+
+## File counts by timeframe
+- 1m: 314 files
+- 3m: 315 files
+- 5m: 328 files
+- 15m: 328 files
+- 30m: 328 files
+- 1h: 656 files
+- 2h: 328 files
+- 4h: 328 files
+- 8h: 537 files
+- 12h: 328 files
+- 1d: 328 files
+- 3d: 328 files
+- 1w: 328 files
+- 1Mo: 328 files
+- funding_rate: 328 files
+- mark: 209 files
+
+## Total size
+2.7G	user_data/data/
+
+## Total files
+5102
